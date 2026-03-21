@@ -3,13 +3,42 @@
 from __future__ import annotations
 
 import logging
+import mimetypes
+import os
+import re
 import smtplib
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email import encoders
 
 from .executor import TaskResult
 from .parser import ParsedEmail
 
 logger = logging.getLogger(__name__)
+
+# Pattern: a line that starts with FILE: followed by a path.
+_FILE_LINE_RE = re.compile(r"^FILE:\s*(.+)$", re.MULTILINE)
+
+
+def extract_file_paths(stdout: str) -> list[str]:
+    """Extract file paths from FILE: lines in stdout.
+
+    Returns only paths that point to existing files.
+    """
+    paths = []
+    for match in _FILE_LINE_RE.finditer(stdout):
+        path = match.group(1).strip()
+        if os.path.isfile(path):
+            paths.append(path)
+        else:
+            logger.warning("FILE: path does not exist, skipping: %s", path)
+    return paths
+
+
+def _strip_file_lines(stdout: str) -> str:
+    """Remove FILE: lines from stdout so they don't appear in the body."""
+    return _FILE_LINE_RE.sub("", stdout).strip()
 
 
 def _build_body(result: TaskResult) -> str:
@@ -21,10 +50,12 @@ def _build_body(result: TaskResult) -> str:
     else:
         lines.append(f"[FAIL] Task exited with code {result.return_code}.")
 
-    if result.stdout:
+    stdout_clean = _strip_file_lines(result.stdout) if result.stdout else ""
+
+    if stdout_clean:
         lines.append("")
         lines.append("--- stdout ---")
-        lines.append(result.stdout.rstrip())
+        lines.append(stdout_clean)
 
     if result.stderr:
         lines.append("")
@@ -38,10 +69,32 @@ def _build_message(
     parsed: ParsedEmail,
     result: TaskResult,
     from_addr: str,
-) -> MIMEText:
-    """Build a MIMEText reply message."""
+) -> MIMEBase:
+    """Build a reply message, with file attachments if FILE: lines are present."""
     body = _build_body(result)
-    msg = MIMEText(body, "plain", "utf-8")
+    file_paths = extract_file_paths(result.stdout) if result.stdout else []
+
+    if not file_paths:
+        msg = MIMEText(body, "plain", "utf-8")
+    else:
+        msg = MIMEMultipart()
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+        for fpath in file_paths:
+            ctype, _ = mimetypes.guess_type(fpath)
+            if ctype is None:
+                ctype = "application/octet-stream"
+            maintype, subtype = ctype.split("/", 1)
+            part = MIMEBase(maintype, subtype)
+            with open(fpath, "rb") as f:
+                part.set_payload(f.read())
+            encoders.encode_base64(part)
+            part.add_header(
+                "Content-Disposition",
+                "attachment",
+                filename=os.path.basename(fpath),
+            )
+            msg.attach(part)
+            logger.info("Attached file: %s", fpath)
 
     subject = parsed.subject
     if not subject.lower().startswith("re:"):

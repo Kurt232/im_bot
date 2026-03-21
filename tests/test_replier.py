@@ -1,10 +1,18 @@
 """Tests for im_bot_email.replier."""
 
+import os
+import tempfile
 from unittest.mock import MagicMock, patch
 
 from im_bot_email.executor import TaskResult
 from im_bot_email.parser import ParsedEmail
-from im_bot_email.replier import _build_body, _build_message, send_reply
+from im_bot_email.replier import (
+    _build_body,
+    _build_message,
+    _strip_file_lines,
+    extract_file_paths,
+    send_reply,
+)
 
 
 def _make_parsed(**kwargs):
@@ -128,3 +136,121 @@ def test_send_reply_message_contains_result(mock_smtp_cls):
     assert "[FAIL]" in payload
     assert "partial output" in payload
     assert "error details" in payload
+
+
+# --- extract_file_paths ---
+
+
+def test_extract_file_paths_finds_existing_files():
+    with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as f:
+        f.write(b"hello")
+        path = f.name
+    try:
+        stdout = f"some output\nFILE: {path}\nmore output"
+        paths = extract_file_paths(stdout)
+        assert paths == [path]
+    finally:
+        os.unlink(path)
+
+
+def test_extract_file_paths_skips_nonexistent():
+    stdout = "FILE: /nonexistent/path/foo.txt\n"
+    paths = extract_file_paths(stdout)
+    assert paths == []
+
+
+def test_extract_file_paths_multiple():
+    with tempfile.NamedTemporaryFile(suffix=".a", delete=False) as f1, \
+         tempfile.NamedTemporaryFile(suffix=".b", delete=False) as f2:
+        f1.write(b"a")
+        f2.write(b"b")
+    try:
+        stdout = f"FILE: {f1.name}\nstuff\nFILE: {f2.name}\n"
+        paths = extract_file_paths(stdout)
+        assert paths == [f1.name, f2.name]
+    finally:
+        os.unlink(f1.name)
+        os.unlink(f2.name)
+
+
+def test_extract_file_paths_empty_stdout():
+    assert extract_file_paths("") == []
+    assert extract_file_paths("no file lines here") == []
+
+
+# --- _strip_file_lines ---
+
+
+def test_strip_file_lines():
+    stdout = "line1\nFILE: /some/path\nline2"
+    assert _strip_file_lines(stdout) == "line1\n\nline2"
+
+
+def test_strip_file_lines_no_file_lines():
+    assert _strip_file_lines("just normal output") == "just normal output"
+
+
+# --- _build_body with FILE: lines ---
+
+
+def test_build_body_strips_file_lines():
+    result = TaskResult(return_code=0, stdout="output\nFILE: /tmp/foo.txt\nmore", stderr="")
+    body = _build_body(result)
+    assert "FILE:" not in body
+    assert "output" in body
+    assert "more" in body
+
+
+# --- _build_message with attachments ---
+
+
+def test_build_message_no_attachments_returns_mime_text():
+    msg = _build_message(_make_parsed(), TaskResult(0, "plain output", ""), "bot@example.com")
+    assert msg.get_content_type() == "text/plain"
+
+
+def test_build_message_with_attachment_returns_multipart():
+    with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as f:
+        f.write(b"file content")
+        path = f.name
+    try:
+        result = TaskResult(0, f"result\nFILE: {path}\n", "")
+        msg = _build_message(_make_parsed(), result, "bot@example.com")
+        assert msg.get_content_type() == "multipart/mixed"
+        parts = msg.get_payload()
+        assert len(parts) == 2
+        # First part is the text body
+        assert parts[0].get_content_type() == "text/plain"
+        body = parts[0].get_payload(decode=True).decode()
+        assert "[OK]" in body
+        assert "FILE:" not in body
+        # Second part is the attachment
+        assert parts[1].get_content_type() == "text/plain"
+        assert parts[1].get_filename() == os.path.basename(path)
+    finally:
+        os.unlink(path)
+
+
+@patch("im_bot_email.replier.smtplib.SMTP_SSL")
+def test_send_reply_with_attachment(mock_smtp_cls):
+    mock_server = MagicMock()
+    mock_smtp_cls.return_value.__enter__ = MagicMock(return_value=mock_server)
+    mock_smtp_cls.return_value.__exit__ = MagicMock(return_value=False)
+
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+        f.write(b"col1,col2\na,b\n")
+        path = f.name
+    try:
+        send_reply(
+            _make_parsed(),
+            TaskResult(0, f"done\nFILE: {path}\n", ""),
+            smtp_host="smtp.example.com",
+            smtp_port=465,
+            email_user="bot@example.com",
+            email_password="secret",
+        )
+        mock_server.send_message.assert_called_once()
+        sent_msg = mock_server.send_message.call_args[0][0]
+        assert sent_msg.get_content_type() == "multipart/mixed"
+    finally:
+        os.unlink(path)
