@@ -32,7 +32,7 @@ mkdir -p "$AUTH_DIR/config"
 # Create worktree for isolation
 WORKER_ID="$(date +%s)-$$"
 BRANCH="worker-${PROJECT_NAME}-${WORKER_ID}"
-WORKER_DIR="$PROJECT_DIR/../claude-worker-${PROJECT_NAME}-${WORKER_ID}"
+WORKER_DIR="$PROJECT_DIR/.worktrees/worker-${WORKER_ID}"
 
 git worktree add -b "$BRANCH" "$WORKER_DIR" HEAD
 echo "Worktree: $WORKER_DIR (branch: $BRANCH)"
