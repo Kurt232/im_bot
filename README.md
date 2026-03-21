@@ -87,5 +87,6 @@ Agent 服务 (IMAP IDLE 监听)
 | `SMTP_PORT` | SMTP 端口（默认 465） |
 | `EMAIL_USER` | 邮箱账号 |
 | `EMAIL_PASSWORD` | 邮箱密码 / App Password / 授权码 |
+| `ALLOWED_SENDERS` | 发件人白名单，逗号分隔（为空则不过滤） |
 | `TASK_COMMAND` | 收到邮件后执行的命令（默认 `echo`） |
 | `LOG_LEVEL` | 日志级别（默认 `INFO`） |

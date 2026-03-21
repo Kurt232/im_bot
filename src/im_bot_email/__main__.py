@@ -2,6 +2,8 @@
 
 import logging
 
+from email.utils import parseaddr
+
 from .config import get_config
 from .executor import execute_task
 from .listener import idle_loop
@@ -18,9 +20,16 @@ def main() -> None:
         format="%(asctime)s %(name)s %(levelname)s %(message)s",
     )
 
+    allowed = cfg["allowed_senders"]
+
     def on_message(raw_msg):
         try:
             parsed = parse_email(raw_msg)
+            if allowed:
+                _, addr = parseaddr(parsed.sender)
+                if addr.lower() not in allowed:
+                    logger.info("Ignoring mail from non-whitelisted sender: %s", parsed.sender)
+                    return
             result = execute_task(parsed, cfg["task_command"])
             send_reply(
                 parsed,
