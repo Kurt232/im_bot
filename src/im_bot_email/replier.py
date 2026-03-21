@@ -162,11 +162,8 @@ def send_reply(
             server.ehlo()
             server.starttls()
             server.ehlo()
-            if email_password:
-                # App password — use basic auth for SMTP.
-                server.login(email_user, email_password)
-            elif oauth2_manager is not None:
-                # OAuth2 XOAUTH2 for SMTP.
+            if oauth2_manager is not None:
+                # OAuth2 XOAUTH2 for SMTP (token includes SMTP.Send scope).
                 access_token = oauth2_manager.get_access_token()
                 server.auth(
                     "XOAUTH2",
