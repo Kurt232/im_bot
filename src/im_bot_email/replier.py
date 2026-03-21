@@ -112,6 +112,12 @@ def _build_message(
     msg["From"] = from_addr
     msg["To"] = parsed.sender
 
+    # Threading headers so replies appear in the same conversation.
+    if parsed.message_id:
+        msg["In-Reply-To"] = parsed.message_id
+        refs = parsed.references
+        msg["References"] = f"{refs} {parsed.message_id}".strip() if refs else parsed.message_id
+
     return msg
 
 

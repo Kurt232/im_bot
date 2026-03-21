@@ -28,6 +28,8 @@ class ParsedEmail:
     subject: str
     sender: str
     body: str
+    message_id: str = ""
+    references: str = ""
     attachments: list[Attachment] = field(default_factory=list)
 
     def to_task_description(self) -> str:
@@ -122,9 +124,15 @@ def _get_attachments(msg: Message) -> list[Attachment]:
 
 def parse_email(msg: Message) -> ParsedEmail:
     """Parse an email.message.Message into a ParsedEmail."""
+    message_id = msg.get("Message-ID", "").strip()
+    # Build references chain: existing References + current Message-ID.
+    references = msg.get("References", "").strip()
+
     return ParsedEmail(
         subject=_decode_header_value(msg.get("Subject")),
         sender=_decode_header_value(msg.get("From")),
         body=_get_body(msg),
+        message_id=message_id,
+        references=references,
         attachments=_get_attachments(msg),
     )
