@@ -1,5 +1,8 @@
 # Progress Log
 
+## 工作方式备忘
+- 完成任务后，应主动提出建议和意见，而不仅仅是执行指令。比如在 Outlook OAuth2 反复踩坑时，应该更早建议切换到 Gmail（App Password 方案更简单可靠），而不是陪着用户一起死磕一个有根本性缺陷的技术路线。
+
 ## 搭建项目基础结构
 - **Commit**: 9261240
 - 创建了 `pyproject.toml`（hatchling + imapclient 依赖）、`.gitignore`（Python 项目标准）、更新了 `setup.sh`（uv venv + pip install）
@@ -88,3 +91,9 @@
 - 白名单：`ALLOWED_SENDERS` 环境变量，逗号分隔，空则不过滤。在 parse 后、execute 前检查
 - 邮件线程：解析 `Message-ID` 和 `References`，回复时设置 `In-Reply-To` 和 `References`
 - **教训**：微软个人 Outlook 的 OAuth2 生态极其混乱——IMAP 和 SMTP 需要不同 audience 的 token，SMTP AUTH 可能被禁用，scope 在不同 resource 之间不能混用。Gmail App Password 简单可靠得多
+
+## 异步执行任务命令
+- **Commit**: (pending)
+- 原来 `on_message` 回调是同步的，`execute_task` 最多阻塞 5 分钟，期间 IMAP IDLE 无法接收新邮件
+- 用 `ThreadPoolExecutor(max_workers=4)` 将任务执行放到后台线程，`on_message` 仅做 `pool.submit()` 后立即返回
+- IDLE 循环不再被阻塞，可以同时处理多封邮件

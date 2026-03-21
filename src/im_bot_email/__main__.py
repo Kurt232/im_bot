@@ -1,6 +1,7 @@
 """Entry point — wire listener, parser, executor, and replier together."""
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 from email.utils import parseaddr
 
@@ -21,8 +22,9 @@ def main() -> None:
     )
 
     allowed = cfg["allowed_senders"]
+    pool = ThreadPoolExecutor(max_workers=4)
 
-    def on_message(raw_msg):
+    def _process_message(raw_msg):
         try:
             parsed = parse_email(raw_msg)
             if allowed:
@@ -41,6 +43,9 @@ def main() -> None:
             )
         except Exception:
             logger.exception("Failed to process message")
+
+    def on_message(raw_msg):
+        pool.submit(_process_message, raw_msg)
 
     idle_loop(
         host=cfg["imap_host"],
