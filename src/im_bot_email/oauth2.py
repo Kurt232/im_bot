@@ -15,8 +15,10 @@ import msal
 
 logger = logging.getLogger(__name__)
 
-# IMAP requires a token from outlook.office.com (not graph.microsoft.com).
-IMAP_SCOPES = ["https://outlook.office.com/IMAP.AccessAsUser.All"]
+SCOPES = [
+    "https://graph.microsoft.com/IMAP.AccessAsUser.All",
+    "https://graph.microsoft.com/SMTP.Send",
+]
 
 
 class OAuth2Manager:
@@ -72,6 +74,6 @@ class OAuth2Manager:
         return result["access_token"]
 
     def get_access_token(self) -> str:
-        """Return IMAP token (outlook.office.com audience)."""
-        return self._acquire_token(IMAP_SCOPES)
+        """Return access token with IMAP + SMTP scopes."""
+        return self._acquire_token(SCOPES)
 
