@@ -231,6 +231,29 @@ def test_build_message_with_attachment_returns_multipart():
         os.unlink(path)
 
 
+@patch("im_bot_email.replier.smtplib.SMTP")
+def test_send_reply_starttls_on_port_587(mock_smtp_cls):
+    """Port 587 should use SMTP + STARTTLS (Outlook)."""
+    mock_server = MagicMock()
+    mock_smtp_cls.return_value.__enter__ = MagicMock(return_value=mock_server)
+    mock_smtp_cls.return_value.__exit__ = MagicMock(return_value=False)
+
+    send_reply(
+        _make_parsed(sender="alice@example.com"),
+        TaskResult(0, "done", ""),
+        smtp_host="smtp-mail.outlook.com",
+        smtp_port=587,
+        email_user="bot@outlook.com",
+        email_password="secret",
+    )
+
+    mock_smtp_cls.assert_called_once_with("smtp-mail.outlook.com", 587)
+    mock_server.ehlo.assert_called()
+    mock_server.starttls.assert_called_once()
+    mock_server.login.assert_called_once_with("bot@outlook.com", "secret")
+    mock_server.send_message.assert_called_once()
+
+
 @patch("im_bot_email.replier.smtplib.SMTP_SSL")
 def test_send_reply_with_attachment(mock_smtp_cls):
     mock_server = MagicMock()

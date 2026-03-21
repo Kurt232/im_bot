@@ -106,6 +106,11 @@ def _build_message(
     return msg
 
 
+def _smtp_xoauth2_string(user: str, access_token: str) -> str:
+    """Build the XOAUTH2 SASL string for SMTP AUTH."""
+    return f"user={user}\x01auth=Bearer {access_token}\x01\x01"
+
+
 def send_reply(
     parsed: ParsedEmail,
     result: TaskResult,
@@ -114,11 +119,9 @@ def send_reply(
     smtp_port: int,
     email_user: str,
     email_password: str,
+    oauth2_manager=None,
 ) -> None:
-    """Send a reply email with the task result to the original sender.
-
-    Uses SMTP_SSL (implicit TLS) which is the standard for port 465.
-    """
+    """Send a reply email with the task result to the original sender."""
     if not smtp_host:
         logger.warning("SMTP_HOST not configured, skipping reply")
         return
@@ -133,8 +136,25 @@ def send_reply(
         msg["Subject"],
     )
 
-    with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
-        server.login(email_user, email_password)
-        server.send_message(msg)
+    if smtp_port == 587:
+        # Port 587: explicit TLS (STARTTLS) — used by Outlook/Office 365.
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            if oauth2_manager is not None:
+                access_token = oauth2_manager.get_access_token()
+                server.auth(
+                    "XOAUTH2",
+                    lambda _=None: _smtp_xoauth2_string(email_user, access_token),
+                )
+            else:
+                server.login(email_user, email_password)
+            server.send_message(msg)
+    else:
+        # Port 465 (default): implicit TLS (SMTP_SSL) — used by Gmail, QQ, 163.
+        with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
+            server.login(email_user, email_password)
+            server.send_message(msg)
 
     logger.info("Reply sent successfully")

@@ -17,10 +17,20 @@ IDLE_RENEW_SECONDS = 5 * 60
 IDLE_CHECK_TIMEOUT = 30
 
 
-def connect(host: str, port: int, user: str, password: str) -> IMAPClient:
+def connect(
+    host: str,
+    port: int,
+    user: str,
+    password: str,
+    oauth2_manager=None,
+) -> IMAPClient:
     """Create an authenticated IMAP connection and select INBOX."""
     client = IMAPClient(host, port=port, ssl=True)
-    client.login(user, password)
+    if oauth2_manager is not None:
+        access_token = oauth2_manager.get_access_token()
+        client.oauth2_login(user, access_token)
+    else:
+        client.login(user, password)
     client.select_folder("INBOX")
     logger.info("Connected to %s as %s", host, user)
     return client
@@ -50,6 +60,8 @@ def idle_loop(
     user: str,
     password: str,
     callback,
+    *,
+    oauth2_manager=None,
 ) -> None:
     """Run the IMAP IDLE loop, calling *callback(message)* for each new email.
 
@@ -57,7 +69,7 @@ def idle_loop(
     """
     while True:
         try:
-            _idle_session(host, port, user, password, callback)
+            _idle_session(host, port, user, password, callback, oauth2_manager=oauth2_manager)
         except Exception:
             logger.exception("IMAP connection lost, reconnecting in 10 s")
             time.sleep(10)
@@ -69,9 +81,11 @@ def _idle_session(
     user: str,
     password: str,
     callback,
+    *,
+    oauth2_manager=None,
 ) -> None:
     """A single IMAP session: connect, process unseen mail, then IDLE."""
-    client = connect(host, port, user, password)
+    client = connect(host, port, user, password, oauth2_manager=oauth2_manager)
     try:
         # Process any mail that arrived while we were offline.
         for msg in fetch_new_messages(client, _search_unseen(client)):
