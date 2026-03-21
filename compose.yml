@@ -16,3 +16,12 @@ services:
       - MODEL
       - EFFORT
       - TIMEOUT
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
