@@ -15,11 +15,20 @@ import msal
 
 logger = logging.getLogger(__name__)
 
-# Scopes required for IMAP and SMTP access.
-SCOPES = [
-    "https://outlook.office365.com/IMAP.AccessAsUser.All",
-    "https://outlook.office365.com/SMTP.Send",
-]
+def _build_scopes(tenant_id: str) -> list[str]:
+    """Return OAuth scopes appropriate for the tenant type.
+
+    Personal accounts (consumers) use outlook.office.com;
+    organizational accounts use outlook.office365.com.
+    """
+    if tenant_id == "consumers":
+        host = "outlook.office.com"
+    else:
+        host = "outlook.office365.com"
+    return [
+        f"https://{host}/IMAP.AccessAsUser.All",
+        f"https://{host}/SMTP.Send",
+    ]
 
 
 class OAuth2Manager:
@@ -33,6 +42,7 @@ class OAuth2Manager:
     ) -> None:
         self._client_id = client_id
         self._tenant_id = tenant_id
+        self._scopes = _build_scopes(tenant_id)
         self._cache_path = Path(token_cache_path)
         self._cache = msal.SerializableTokenCache()
 
@@ -55,13 +65,13 @@ class OAuth2Manager:
         # 1. Try silent acquisition (cached refresh token).
         accounts = self._app.get_accounts()
         if accounts:
-            result = self._app.acquire_token_silent(SCOPES, account=accounts[0])
+            result = self._app.acquire_token_silent(self._scopes, account=accounts[0])
             if result and "access_token" in result:
                 self._save_cache()
                 return result["access_token"]
 
         # 2. No cached token — initiate device-code flow.
-        flow = self._app.initiate_device_flow(scopes=SCOPES)
+        flow = self._app.initiate_device_flow(scopes=self._scopes)
         if "user_code" not in flow:
             raise RuntimeError(f"Device-code flow failed: {json.dumps(flow, indent=2)}")
 
