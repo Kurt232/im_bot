@@ -80,13 +80,14 @@ EOF
 1. 登录 [Azure Portal → App registrations](https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)
 2. 点击 **New registration**
    - 名称：`Email Bot`（随意）
-   - 账户类型：选 **Personal Microsoft accounts only**（个人）或 **Accounts in any organizational directory and personal Microsoft accounts**（个人+组织）
+   - 账户类型：选 **Accounts in any organizational directory and personal Microsoft accounts**（必须包含个人账户）
    - 重定向 URI：选 **Mobile and desktop applications** → 填 `https://login.microsoftonline.com/common/oauth2/nativeclient`
 3. 注册后，复制 **Application (client) ID**
-4. 在左侧 **API permissions** → **Add a permission** → **APIs my organization uses** → 搜索 `Office 365 Exchange Online` → **Delegated permissions** → 勾选：
+4. 在左侧 **Authentication** → 底部 **Advanced settings** → **Allow public client flows** → 设为 **Yes** → Save
+5. 在左侧 **API permissions** → **Add a permission** → **APIs my organization uses** → 搜索 `Office 365 Exchange Online` → **Delegated permissions** → 勾选：
    - `IMAP.AccessAsUser.All`
    - `SMTP.Send`
-5. 点击 **Grant admin consent**（组织账户）或直接使用（个人账户会在首次登录时同意）
+6. 点击 **Grant admin consent**（组织账户）或直接使用（个人账户会在首次登录时同意）
 
 **第二步：配置 .env**
 
@@ -98,13 +99,12 @@ SMTP_PORT=587
 EMAIL_USER=you@outlook.com
 AUTH_METHOD=oauth2
 OAUTH2_CLIENT_ID=your-azure-app-client-id
-OAUTH2_TENANT_ID=consumers
 TASK_COMMAND=echo
 EOF
 ```
 
-> - 个人账户（@outlook.com / @hotmail.com）：`OAUTH2_TENANT_ID=consumers`
-> - 组织账户（Microsoft 365）：`OAUTH2_TENANT_ID=organizations` 或填具体 Tenant ID
+> - 默认 `OAUTH2_TENANT_ID=common`，同时支持个人和组织账户，一般无需修改
+> - 仅组织账户可填 `organizations` 或具体 Tenant ID
 > - 首次启动时，程序会打印一个 URL 和验证码，在浏览器中完成授权后 token 会被缓存到 `.token_cache.json`，后续启动自动刷新，无需再次登录
 
 **端口说明：** Outlook SMTP 使用 587 端口（STARTTLS），不同于 Gmail/QQ 的 465 端口（隐式 TLS）。程序会根据端口自动选择连接方式。
@@ -180,7 +180,7 @@ Agent 服务 (IMAP IDLE 监听)
 | `EMAIL_PASSWORD` | 邮箱密码 / 授权码（`AUTH_METHOD=password` 时必填） |
 | `AUTH_METHOD` | 认证方式：`password`（默认）或 `oauth2` |
 | `OAUTH2_CLIENT_ID` | Azure 应用 Client ID（`AUTH_METHOD=oauth2` 时必填） |
-| `OAUTH2_TENANT_ID` | Azure 租户（默认 `consumers`，组织账户用 `organizations`） |
+| `OAUTH2_TENANT_ID` | Azure 租户（默认 `common`，支持个人+组织账户） |
 | `OAUTH2_TOKEN_CACHE` | Token 缓存文件路径（默认 `.token_cache.json`） |
 | `TASK_COMMAND` | 收到邮件后执行的命令（默认 `echo`） |
 | `LOG_LEVEL` | 日志级别（默认 `INFO`） |
