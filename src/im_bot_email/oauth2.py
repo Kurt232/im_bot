@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 SCOPES = [
     "https://outlook.office365.com/IMAP.AccessAsUser.All",
     "https://outlook.office365.com/SMTP.Send",
-    "offline_access",
 ]
 
 
