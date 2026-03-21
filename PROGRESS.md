@@ -80,3 +80,11 @@
   - IMAP 和 SMTP 使用不同的认证方式（OAuth2 vs 应用密码）是可行的混合方案
   - `noreply`/`mailer-daemon` 等地址必须过滤，防止回复循环
   - SMTP 发送失败不应导致 IMAP 监听崩溃，需要 try/except 隔离
+
+## 全面切换到 Gmail + 白名单 + 邮件线程
+- **Commit**: 0eff628 (Gmail 切换), fd87a09 (白名单), a94125f (线程)
+- 删除全部 OAuth2 代码（oauth2.py、msal 依赖、AUTH_METHOD 配置），-234 行
+- Gmail App Password 一步到位，IMAP + SMTP 都直接用
+- 白名单：`ALLOWED_SENDERS` 环境变量，逗号分隔，空则不过滤。在 parse 后、execute 前检查
+- 邮件线程：解析 `Message-ID` 和 `References`，回复时设置 `In-Reply-To` 和 `References`
+- **教训**：微软个人 Outlook 的 OAuth2 生态极其混乱——IMAP 和 SMTP 需要不同 audience 的 token，SMTP AUTH 可能被禁用，scope 在不同 resource 之间不能混用。Gmail App Password 简单可靠得多

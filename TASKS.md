@@ -9,5 +9,5 @@
 - [x] 编写 start.sh 入口脚本
 - [x] 编写 Quickstart 文档
 - [x] 支持 Outlook OAuth 2.0 认证（XOAUTH2）
-- [ ] 需要一个im bot处理邮件的白名单，否则会被垃圾邮件攻击
-- [ ] im bot能够正确处理 email threading
+- [x] 需要一个im bot处理邮件的白名单，否则会被垃圾邮件攻击
+- [x] im bot能够正确处理 email threading
