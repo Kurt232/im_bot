@@ -16,7 +16,7 @@ import msal
 logger = logging.getLogger(__name__)
 
 # Graph API scope for sending mail (separate resource from IMAP).
-GRAPH_SEND_SCOPES = ["https://graph.microsoft.com/Mail.Send"]
+GRAPH_SEND_SCOPES = ["https://graph.microsoft.com/SMTP.Send"]
 
 
 def _build_imap_scopes(tenant_id: str) -> list[str]:
