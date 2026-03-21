@@ -8,6 +8,8 @@ from .listener import idle_loop
 from .parser import parse_email
 from .replier import send_reply
 
+logger = logging.getLogger(__name__)
+
 
 def main() -> None:
     cfg = get_config()
@@ -29,17 +31,20 @@ def main() -> None:
         oauth2_mgr.get_access_token()
 
     def on_message(raw_msg):
-        parsed = parse_email(raw_msg)
-        result = execute_task(parsed, cfg["task_command"])
-        send_reply(
-            parsed,
-            result,
-            smtp_host=cfg["smtp_host"],
-            smtp_port=cfg["smtp_port"],
-            email_user=cfg["email_user"],
-            email_password=cfg["email_password"],
-            oauth2_manager=oauth2_mgr,
-        )
+        try:
+            parsed = parse_email(raw_msg)
+            result = execute_task(parsed, cfg["task_command"])
+            send_reply(
+                parsed,
+                result,
+                smtp_host=cfg["smtp_host"],
+                smtp_port=cfg["smtp_port"],
+                email_user=cfg["email_user"],
+                email_password=cfg["email_password"],
+                oauth2_manager=oauth2_mgr,
+            )
+        except Exception:
+            logger.exception("Failed to process message")
 
     idle_loop(
         host=cfg["imap_host"],
