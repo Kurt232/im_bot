@@ -1,0 +1,10 @@
+# Allowed users — only listed email addresses will be processed by the bot.
+# Copy to users.yaml and edit.
+#
+# max_workers: max concurrent tasks for this user (default: 1)
+
+users:
+  user@gmail.com:
+    max_workers: 1
+  friend@example.com:
+    max_workers: 1

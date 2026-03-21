@@ -22,6 +22,16 @@ services:
       context: .
       dockerfile: Dockerfile.bot
     restart: unless-stopped
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - .docker-claude/config:/home/cc-worker/.claude
+      - .docker-claude/claude.json:/home/cc-worker/.claude.json
     env_file:
       - path: .env
         required: false
+    environment:
+      - MODEL
+      - EFFORT
+      - TIMEOUT
+      - QUEUE_SIZE

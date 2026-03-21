@@ -108,7 +108,10 @@ def _get_attachments(msg: Message) -> list[Attachment]:
 
     for part in msg.walk():
         disposition = str(part.get("Content-Disposition", ""))
-        if "attachment" not in disposition:
+        # Capture both "attachment" and "inline" parts that have a filename.
+        if "attachment" not in disposition and "inline" not in disposition:
+            continue
+        if not part.get_filename():
             continue
         payload = part.get_payload(decode=True)
         if payload is None:

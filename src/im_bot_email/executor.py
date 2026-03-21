@@ -40,8 +40,19 @@ def execute_task(parsed: ParsedEmail, task_command: str) -> TaskResult:
 
     with tempfile.TemporaryDirectory(prefix="im_bot_") as tmpdir:
         # Save attachments so the command can read them.
+        seen_names: dict[str, int] = {}
         for att in parsed.attachments:
-            path = os.path.join(tmpdir, att.filename)
+            name = att.filename
+            if name in seen_names:
+                seen_names[name] += 1
+                base, dot, ext = name.rpartition(".")
+                if dot:
+                    name = f"{base}_{seen_names[name]}.{ext}"
+                else:
+                    name = f"{name}_{seen_names[name]}"
+            else:
+                seen_names[name] = 0
+            path = os.path.join(tmpdir, name)
             with open(path, "wb") as f:
                 f.write(att.content)
             logger.debug("Saved attachment %s to %s", att.filename, path)
@@ -64,6 +75,7 @@ def execute_task(parsed: ParsedEmail, task_command: str) -> TaskResult:
                 text=True,
                 timeout=TASK_TIMEOUT,
                 env=env,
+                cwd=os.environ.get("TASK_CWD", os.getcwd()),
             )
             result = TaskResult(
                 return_code=proc.returncode,
@@ -75,7 +87,10 @@ def execute_task(parsed: ParsedEmail, task_command: str) -> TaskResult:
             result = TaskResult(
                 return_code=-1,
                 stdout="",
-                stderr=f"Task timed out after {TASK_TIMEOUT} seconds",
+                stderr=(
+                    f"任务执行超时（已超过 {TASK_TIMEOUT} 秒限制）。\n"
+                    "请尝试将任务拆分为更小的步骤后重新发送。"
+                ),
             )
 
     if result.success:

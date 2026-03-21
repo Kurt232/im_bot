@@ -128,6 +128,36 @@ def _should_skip_reply(sender: str) -> bool:
     return any(p in addr_lower for p in _NOREPLY_PATTERNS)
 
 
+def _send_mime(
+    msg: MIMEBase,
+    *,
+    smtp_host: str,
+    smtp_port: int,
+    email_user: str,
+    email_password: str,
+) -> None:
+    """Low-level: send a MIME message via SMTP."""
+    logger.info(
+        "Sending to %s via %s:%d (subject=%r)",
+        msg["To"],
+        smtp_host,
+        smtp_port,
+        msg["Subject"],
+    )
+    if smtp_port == 587:
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(email_user, email_password)
+            server.send_message(msg)
+    else:
+        with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
+            server.login(email_user, email_password)
+            server.send_message(msg)
+    logger.info("Sent successfully")
+
+
 def send_reply(
     parsed: ParsedEmail,
     result: TaskResult,
@@ -147,25 +177,48 @@ def send_reply(
         return
 
     msg = _build_message(parsed, result, from_addr=email_user)
-
-    logger.info(
-        "Sending reply to %s via %s:%d (subject=%r)",
-        parsed.sender,
-        smtp_host,
-        smtp_port,
-        msg["Subject"],
+    _send_mime(
+        msg,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        email_user=email_user,
+        email_password=email_password,
     )
 
-    if smtp_port == 587:
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(email_user, email_password)
-            server.send_message(msg)
-    else:
-        with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
-            server.login(email_user, email_password)
-            server.send_message(msg)
 
-    logger.info("Reply sent successfully")
+def send_status_reply(
+    parsed: ParsedEmail,
+    body: str,
+    *,
+    smtp_host: str,
+    smtp_port: int,
+    email_user: str,
+    email_password: str,
+) -> None:
+    """Send an immediate status notification (e.g. 'executing' or 'queued')."""
+    if _should_skip_reply(parsed.sender):
+        return
+    if not smtp_host:
+        return
+
+    msg = MIMEText(body, "plain", "utf-8")
+
+    subject = parsed.subject
+    if not subject.lower().startswith("re:"):
+        subject = f"Re: {subject}"
+    msg["Subject"] = subject
+    msg["From"] = email_user
+    msg["To"] = parsed.sender
+
+    if parsed.message_id:
+        msg["In-Reply-To"] = parsed.message_id
+        refs = parsed.references
+        msg["References"] = f"{refs} {parsed.message_id}".strip() if refs else parsed.message_id
+
+    _send_mime(
+        msg,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        email_user=email_user,
+        email_password=email_password,
+    )

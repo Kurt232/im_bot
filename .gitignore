@@ -8,6 +8,8 @@ build/
 
 # Environment
 .env
+users.yaml
+cc-workspace/
 
 
 # IDE
