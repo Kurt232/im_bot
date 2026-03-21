@@ -158,8 +158,26 @@ def _send_via_graph(
         json={"message": message},
         timeout=30,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        logger.error("Graph API error %d: %s", resp.status_code, resp.text)
+        resp.raise_for_status()
     logger.info("Reply sent via Graph API to %s", recipient)
+
+
+# Addresses that should never receive automated replies.
+_NOREPLY_PATTERNS = (
+    "noreply", "no-reply", "no_reply",
+    "mailer-daemon", "postmaster",
+    "accountprotection.microsoft.com",
+    "bounce", "undeliverable",
+)
+
+
+def _should_skip_reply(sender: str) -> bool:
+    """Return True if we should not reply to this sender."""
+    _, addr = parseaddr(sender)
+    addr_lower = addr.lower() if addr else sender.lower()
+    return any(p in addr_lower for p in _NOREPLY_PATTERNS)
 
 
 def _smtp_xoauth2_string(user: str, access_token: str) -> str:
@@ -183,6 +201,10 @@ def send_reply(
     (bypasses SMTP AUTH which may be disabled on Outlook mailboxes).
     Falls back to SMTP for non-OAuth2 setups.
     """
+    if _should_skip_reply(parsed.sender):
+        logger.info("Skipping reply to no-reply address: %s", parsed.sender)
+        return
+
     if oauth2_manager is not None:
         _send_via_graph(parsed, result, oauth2_manager)
         return
