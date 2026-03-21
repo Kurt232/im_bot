@@ -85,8 +85,9 @@ EOF
 3. 注册后，复制 **Application (client) ID**
 4. 在左侧 **Authentication** → 底部 **Advanced settings** → **Allow public client flows** → 设为 **Yes** → Save
 5. 在左侧 **API permissions** → **Add a permission**：
-   - **APIs my organization uses** → 搜索 `Office 365 Exchange Online` → **Delegated permissions** → 勾选 `IMAP.AccessAsUser.All`
-   - **Microsoft Graph** → **Delegated permissions** → 勾选 `Mail.Send`（用于通过 Graph API 发送邮件，绕过 SMTP AUTH 限制）
+   - **APIs my organization uses** → 搜索 `Office 365 Exchange Online` → **Delegated permissions** → 勾选：
+     - `IMAP.AccessAsUser.All`（收邮件）
+     - `SMTP.Send`（发邮件）
 6. 点击 **Grant admin consent**（组织账户）或直接使用（个人账户会在首次登录时同意）
 
 **第二步：配置 .env**

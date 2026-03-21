@@ -1,8 +1,7 @@
-"""Replier — send task results back to the original sender via SMTP or Graph API."""
+"""Replier — send task results back to the original sender."""
 
 from __future__ import annotations
 
-import base64
 import logging
 import mimetypes
 import os
@@ -21,6 +20,14 @@ logger = logging.getLogger(__name__)
 
 # Pattern: a line that starts with FILE: followed by a path.
 _FILE_LINE_RE = re.compile(r"^FILE:\s*(.+)$", re.MULTILINE)
+
+# Addresses that should never receive automated replies.
+_NOREPLY_PATTERNS = (
+    "noreply", "no-reply", "no_reply",
+    "mailer-daemon", "postmaster",
+    "accountprotection.microsoft.com",
+    "bounce", "undeliverable",
+)
 
 
 def extract_file_paths(stdout: str) -> list[str]:
@@ -108,71 +115,6 @@ def _build_message(
     return msg
 
 
-def _send_via_graph(
-    parsed: ParsedEmail,
-    result: TaskResult,
-    oauth2_manager,
-) -> None:
-    """Send reply using Microsoft Graph API (no SMTP needed)."""
-    import requests
-
-    token = oauth2_manager.get_graph_token()
-    body_text = _build_body(result)
-
-    subject = parsed.subject
-    if not subject.lower().startswith("re:"):
-        subject = f"Re: {subject}"
-
-    # Extract email address from "Name <email>" format.
-    _, recipient = parseaddr(parsed.sender)
-    if not recipient:
-        recipient = parsed.sender
-
-    message: dict = {
-        "subject": subject,
-        "body": {"contentType": "Text", "content": body_text},
-        "toRecipients": [{"emailAddress": {"address": recipient}}],
-    }
-
-    # Attach files if present.
-    file_paths = extract_file_paths(result.stdout) if result.stdout else []
-    if file_paths:
-        attachments = []
-        for fpath in file_paths:
-            with open(fpath, "rb") as f:
-                content = base64.b64encode(f.read()).decode()
-            attachments.append({
-                "@odata.type": "#microsoft.graph.fileAttachment",
-                "name": os.path.basename(fpath),
-                "contentBytes": content,
-            })
-            logger.info("Attached file: %s", fpath)
-        message["attachments"] = attachments
-
-    resp = requests.post(
-        "https://graph.microsoft.com/v1.0/me/sendMail",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-        json={"message": message},
-        timeout=30,
-    )
-    if not resp.ok:
-        logger.error("Graph API error %d: %s", resp.status_code, resp.text)
-        resp.raise_for_status()
-    logger.info("Reply sent via Graph API to %s", recipient)
-
-
-# Addresses that should never receive automated replies.
-_NOREPLY_PATTERNS = (
-    "noreply", "no-reply", "no_reply",
-    "mailer-daemon", "postmaster",
-    "accountprotection.microsoft.com",
-    "bounce", "undeliverable",
-)
-
-
 def _should_skip_reply(sender: str) -> bool:
     """Return True if we should not reply to this sender."""
     _, addr = parseaddr(sender)
@@ -195,18 +137,9 @@ def send_reply(
     email_password: str,
     oauth2_manager=None,
 ) -> None:
-    """Send a reply email with the task result to the original sender.
-
-    When oauth2_manager is provided, uses Microsoft Graph API to send
-    (bypasses SMTP AUTH which may be disabled on Outlook mailboxes).
-    Falls back to SMTP for non-OAuth2 setups.
-    """
+    """Send a reply email with the task result to the original sender."""
     if _should_skip_reply(parsed.sender):
         logger.info("Skipping reply to no-reply address: %s", parsed.sender)
-        return
-
-    if oauth2_manager is not None:
-        _send_via_graph(parsed, result, oauth2_manager)
         return
 
     if not smtp_host:
@@ -229,7 +162,14 @@ def send_reply(
             server.ehlo()
             server.starttls()
             server.ehlo()
-            server.login(email_user, email_password)
+            if oauth2_manager is not None:
+                access_token = oauth2_manager.get_access_token()
+                server.auth(
+                    "XOAUTH2",
+                    lambda _=None: _smtp_xoauth2_string(email_user, access_token),
+                )
+            else:
+                server.login(email_user, email_password)
             server.send_message(msg)
     else:
         # Port 465 (default): implicit TLS (SMTP_SSL) — used by Gmail, QQ, 163.
