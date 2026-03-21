@@ -20,7 +20,7 @@ def get_config() -> dict:
 
     if auth_method == "oauth2":
         cfg["oauth2_client_id"] = os.environ["OAUTH2_CLIENT_ID"]
-        cfg["oauth2_tenant_id"] = os.environ.get("OAUTH2_TENANT_ID", "common")
+        cfg["oauth2_tenant_id"] = os.environ.get("OAUTH2_TENANT_ID", "consumers")
         cfg["oauth2_token_cache"] = os.environ.get("OAUTH2_TOKEN_CACHE", ".token_cache.json")
         # password not required for oauth2
         cfg["email_password"] = ""

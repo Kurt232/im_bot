@@ -15,10 +15,20 @@ import msal
 
 logger = logging.getLogger(__name__)
 
-SCOPES = [
-    "https://outlook.office365.com/IMAP.AccessAsUser.All",
-    "https://outlook.office365.com/SMTP.Send",
-]
+def _build_scopes(tenant_id: str) -> list[str]:
+    """Return OAuth scopes appropriate for the tenant type.
+
+    Personal accounts (consumers/common) use outlook.office.com;
+    organizational accounts use outlook.office365.com.
+    """
+    if tenant_id in ("consumers", "common"):
+        host = "outlook.office.com"
+    else:
+        host = "outlook.office365.com"
+    return [
+        f"https://{host}/IMAP.AccessAsUser.All",
+        f"https://{host}/SMTP.Send",
+    ]
 
 
 class OAuth2Manager:
@@ -27,12 +37,12 @@ class OAuth2Manager:
     def __init__(
         self,
         client_id: str,
-        tenant_id: str = "common",
+        tenant_id: str = "consumers",
         token_cache_path: str = ".token_cache.json",
     ) -> None:
         self._client_id = client_id
         self._tenant_id = tenant_id
-        self._scopes = SCOPES
+        self._scopes = _build_scopes(tenant_id)
         self._cache_path = Path(token_cache_path)
         self._cache = msal.SerializableTokenCache()
 
