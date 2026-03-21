@@ -18,14 +18,12 @@ def get_config() -> dict:
         "auth_method": auth_method,
     }
 
-    # Password: required for password auth, optional for oauth2 (used as SMTP fallback).
-    cfg["email_password"] = os.environ.get("EMAIL_PASSWORD", "")
-
     if auth_method == "oauth2":
         cfg["oauth2_client_id"] = os.environ["OAUTH2_CLIENT_ID"]
         cfg["oauth2_tenant_id"] = os.environ.get("OAUTH2_TENANT_ID", "consumers")
         cfg["oauth2_token_cache"] = os.environ.get("OAUTH2_TOKEN_CACHE", ".token_cache.json")
-    elif not cfg["email_password"]:
-        raise ValueError("EMAIL_PASSWORD is required when AUTH_METHOD=password")
+
+    # EMAIL_PASSWORD is needed for SMTP even when using OAuth2 for IMAP.
+    cfg["email_password"] = os.environ.get("EMAIL_PASSWORD", "")
 
     return cfg

@@ -27,9 +27,8 @@ def main() -> None:
             tenant_id=cfg["oauth2_tenant_id"],
             token_cache_path=cfg["oauth2_token_cache"],
         )
-        # Eagerly acquire both tokens so device-code prompts happen at startup.
+        # Eagerly acquire IMAP token so device-code prompt happens at startup.
         oauth2_mgr.get_access_token()
-        oauth2_mgr.get_graph_token()
 
     def on_message(raw_msg):
         try:
@@ -42,7 +41,6 @@ def main() -> None:
                 smtp_port=cfg["smtp_port"],
                 email_user=cfg["email_user"],
                 email_password=cfg["email_password"],
-                oauth2_manager=oauth2_mgr,
             )
         except Exception:
             logger.exception("Failed to process message")

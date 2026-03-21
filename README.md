@@ -95,17 +95,18 @@ EOF
 ```bash
 cat > .env << 'EOF'
 IMAP_HOST=outlook.office365.com
-SMTP_HOST=smtp.office365.com
+SMTP_HOST=smtp-mail.outlook.com
 SMTP_PORT=587
 EMAIL_USER=you@outlook.com
+EMAIL_PASSWORD=your-app-password
 AUTH_METHOD=oauth2
 OAUTH2_CLIENT_ID=your-azure-app-client-id
 TASK_COMMAND=echo
 EOF
 ```
 
-> - 默认 `OAUTH2_TENANT_ID=common`，同时支持个人和组织账户，一般无需修改
-> - 仅组织账户可填 `organizations` 或具体 Tenant ID
+> - OAuth2 仅用于 IMAP 收邮件，SMTP 发邮件使用 `EMAIL_PASSWORD`（应用密码）
+> - 默认 `OAUTH2_TENANT_ID=consumers`，支持个人账户；组织账户可填 `organizations` 或具体 Tenant ID
 > - 首次启动时，程序会打印一个 URL 和验证码，在浏览器中完成授权后 token 会被缓存到 `.token_cache.json`，后续启动自动刷新，无需再次登录
 
 **端口说明：** Outlook SMTP 使用 587 端口（STARTTLS），不同于 Gmail/QQ 的 465 端口（隐式 TLS）。程序会根据端口自动选择连接方式。
@@ -178,10 +179,10 @@ Agent 服务 (IMAP IDLE 监听)
 | `SMTP_HOST` | SMTP 服务器地址 |
 | `SMTP_PORT` | SMTP 端口（默认 465；Outlook 用 587） |
 | `EMAIL_USER` | 邮箱账号 |
-| `EMAIL_PASSWORD` | 邮箱密码 / 授权码（`AUTH_METHOD=password` 时必填） |
+| `EMAIL_PASSWORD` | 邮箱密码 / 授权码 / 应用密码（SMTP 发邮件用，OAuth2 模式下也需要） |
 | `AUTH_METHOD` | 认证方式：`password`（默认）或 `oauth2` |
 | `OAUTH2_CLIENT_ID` | Azure 应用 Client ID（`AUTH_METHOD=oauth2` 时必填） |
-| `OAUTH2_TENANT_ID` | Azure 租户（默认 `common`，支持个人+组织账户） |
+| `OAUTH2_TENANT_ID` | Azure 租户（默认 `consumers`，支持个人账户） |
 | `OAUTH2_TOKEN_CACHE` | Token 缓存文件路径（默认 `.token_cache.json`） |
 | `TASK_COMMAND` | 收到邮件后执行的命令（默认 `echo`） |
 | `LOG_LEVEL` | 日志级别（默认 `INFO`） |

@@ -25,3 +25,5 @@ services:
     env_file:
       - path: .env
         required: false
+    volumes:
+      - ./.token_cache.json:/app/.token_cache.json

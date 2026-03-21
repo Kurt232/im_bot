@@ -122,11 +122,6 @@ def _should_skip_reply(sender: str) -> bool:
     return any(p in addr_lower for p in _NOREPLY_PATTERNS)
 
 
-def _smtp_xoauth2_string(user: str, access_token: str) -> str:
-    """Build the XOAUTH2 SASL string for SMTP AUTH."""
-    return f"user={user}\x01auth=Bearer {access_token}\x01\x01"
-
-
 def send_reply(
     parsed: ParsedEmail,
     result: TaskResult,
@@ -135,7 +130,6 @@ def send_reply(
     smtp_port: int,
     email_user: str,
     email_password: str,
-    oauth2_manager=None,
 ) -> None:
     """Send a reply email with the task result to the original sender."""
     if _should_skip_reply(parsed.sender):
@@ -161,15 +155,7 @@ def send_reply(
             server.ehlo()
             server.starttls()
             server.ehlo()
-            if oauth2_manager is not None:
-                # SMTP OAuth2: use graph.microsoft.com/SMTP.Send token.
-                access_token = oauth2_manager.get_graph_token()
-                server.auth(
-                    "XOAUTH2",
-                    lambda _=None: _smtp_xoauth2_string(email_user, access_token),
-                )
-            else:
-                server.login(email_user, email_password)
+            server.login(email_user, email_password)
             server.send_message(msg)
     else:
         with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
