@@ -18,18 +18,6 @@ def main() -> None:
         format="%(asctime)s %(name)s %(levelname)s %(message)s",
     )
 
-    oauth2_mgr = None
-    if cfg["auth_method"] == "oauth2":
-        from .oauth2 import OAuth2Manager
-
-        oauth2_mgr = OAuth2Manager(
-            client_id=cfg["oauth2_client_id"],
-            tenant_id=cfg["oauth2_tenant_id"],
-            token_cache_path=cfg["oauth2_token_cache"],
-        )
-        # Eagerly acquire token so device-code prompt happens at startup.
-        oauth2_mgr.get_access_token()
-
     def on_message(raw_msg):
         try:
             parsed = parse_email(raw_msg)
@@ -51,7 +39,6 @@ def main() -> None:
         user=cfg["email_user"],
         password=cfg["email_password"],
         callback=on_message,
-        oauth2_manager=oauth2_mgr,
     )
 
 

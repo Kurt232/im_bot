@@ -9,8 +9,6 @@ build/
 # Environment
 .env
 
-# OAuth token cache
-.token_cache.json
 
 # IDE
 .vscode/

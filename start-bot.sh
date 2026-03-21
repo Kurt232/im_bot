@@ -17,12 +17,7 @@ if [ -f .env ]; then
 fi
 
 # Validate required environment variables
-required_vars=(IMAP_HOST EMAIL_USER)
-if [ "${AUTH_METHOD:-password}" = "oauth2" ]; then
-    required_vars+=(OAUTH2_CLIENT_ID)
-else
-    required_vars+=(EMAIL_PASSWORD)
-fi
+required_vars=(IMAP_HOST EMAIL_USER EMAIL_PASSWORD)
 
 missing=()
 for var in "${required_vars[@]}"; do

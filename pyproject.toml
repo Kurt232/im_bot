@@ -5,7 +5,6 @@ description = "Email bot — listens for new emails via IMAP IDLE, parses them i
 requires-python = ">=3.10"
 dependencies = [
     "imapclient>=3.0.0",
-    "msal>=1.28.0",
 ]
 
 [tool.hatch.build.targets.wheel]
