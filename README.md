@@ -94,7 +94,7 @@ EOF
 ```bash
 cat > .env << 'EOF'
 IMAP_HOST=outlook.office365.com
-SMTP_HOST=smtp-mail.outlook.com
+SMTP_HOST=smtp.office365.com
 SMTP_PORT=587
 EMAIL_USER=you@outlook.com
 AUTH_METHOD=oauth2
