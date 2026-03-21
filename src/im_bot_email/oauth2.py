@@ -15,11 +15,11 @@ import msal
 
 logger = logging.getLogger(__name__)
 
-# Both scopes under graph.microsoft.com — single token covers IMAP + send.
-SCOPES = [
-    "https://graph.microsoft.com/IMAP.AccessAsUser.All",
-    "https://graph.microsoft.com/SMTP.Send",
-]
+# IMAP requires a token from outlook.office.com (not graph.microsoft.com).
+IMAP_SCOPES = ["https://outlook.office.com/IMAP.AccessAsUser.All"]
+
+# Sending mail via Graph API requires a graph.microsoft.com token.
+GRAPH_SCOPES = ["https://graph.microsoft.com/SMTP.Send"]
 
 
 class OAuth2Manager:
@@ -50,18 +50,16 @@ class OAuth2Manager:
         if self._cache.has_state_changed:
             self._cache_path.write_text(self._cache.serialize())
 
-    def get_access_token(self) -> str:
-        """Return a valid access token (covers IMAP + Graph send)."""
-        # 1. Try silent acquisition (cached refresh token).
+    def _acquire_token(self, scopes: list[str]) -> str:
+        """Acquire a token for the given scopes, prompting if needed."""
         accounts = self._app.get_accounts()
         if accounts:
-            result = self._app.acquire_token_silent(SCOPES, account=accounts[0])
+            result = self._app.acquire_token_silent(scopes, account=accounts[0])
             if result and "access_token" in result:
                 self._save_cache()
                 return result["access_token"]
 
-        # 2. No cached token — initiate device-code flow.
-        flow = self._app.initiate_device_flow(scopes=SCOPES)
+        flow = self._app.initiate_device_flow(scopes=scopes)
         if "user_code" not in flow:
             raise RuntimeError(f"Device-code flow failed: {json.dumps(flow, indent=2)}")
 
@@ -76,6 +74,10 @@ class OAuth2Manager:
         logger.info("OAuth2 token acquired and cached")
         return result["access_token"]
 
+    def get_access_token(self) -> str:
+        """Return IMAP token (outlook.office.com audience)."""
+        return self._acquire_token(IMAP_SCOPES)
+
     def get_graph_token(self) -> str:
-        """Return Graph token — same token since both scopes are graph.microsoft.com."""
-        return self.get_access_token()
+        """Return Graph token for sending mail (graph.microsoft.com audience)."""
+        return self._acquire_token(GRAPH_SCOPES)
