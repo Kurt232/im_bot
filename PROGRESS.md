@@ -69,7 +69,7 @@
 - 使用 `${!var}` 间接引用批量校验变量，避免重复代码
 
 ## 实现 Outlook OAuth2 支持（IMAP）+ 传统 SMTP 发送
-- **Commit**: (pending)
+- **Commit**: 48a74bb
 - **问题**：微软已禁用 Outlook.com 的基本认证（用户名+密码）用于 IMAP，必须使用 OAuth2
 - **IMAP OAuth2**：通过 MSAL `PublicClientApplication` + device-code flow 实现，token 缓存到 `.token_cache.json`
 - **SMTP 发送**：Outlook.com 个人账户的 SMTP AUTH（包括 XOAUTH2 和基本认证）可能被禁用（5.7.139 错误），最终使用应用密码通过传统 SMTP 发送
