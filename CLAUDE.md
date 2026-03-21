@@ -1,24 +1,21 @@
 # CLAUDE.md
 
-## Project: [Your Project Name]
-
-### What is this?
-[One paragraph describing the project and its purpose.]
-
-### Tech Stack
-- Language: Python 3.11+ / TypeScript
-- Framework: [FastAPI / Next.js / etc.]
-- Database: SQLite
+### First Run
+If README.md is empty, this is a new project. Run `./setup.sh` if needed, then:
+1. Ask the user to describe the project
+2. Write project description, tech stack, and architecture to README.md
+3. Write initial tasks to tasks.md
+4. Set up .gitignore based on the tech stack
+5. Commit: `init: bootstrap project`
 
 ### Your Workflow
 1. Read tasks.md → pick the top unchecked task
 2. Plan your approach (think before coding)
-3. Implement with tests
-4. Run tests: `python -m pytest` or `npm test`
-5. Commit with a clear message
-6. Update PROGRESS.md with lessons learned (see format below)
-7. Mark the task done in tasks.md
-8. Exit
+3. Implement with tests if applicable
+4. Commit with a clear message
+5. Update PROGRESS.md with lessons learned (see format below)
+6. Mark the task done in tasks.md
+7. Exit
 
 ### PROGRESS.md Format
 每次完成任务或遇到问题后记录，**必须附上 git commit ID**：
@@ -28,7 +25,11 @@
 
 **同样的问题不要犯两次！**
 
-If running in a worktree, write to the main repo's PROGRESS.md via absolute path directly.
+If running in a worktree, write to the main repo's PROGRESS.md via:
+```
+git -C <main-repo-path> ...
+```
+or edit the file at its absolute path directly.
 
 ### Commit Format
 `feat:`, `fix:`, `refactor:`, `docs:`, `test:`
@@ -36,14 +37,8 @@ If running in a worktree, write to the main repo's PROGRESS.md via absolute path
 ### Rules
 - NEVER delete existing working features
 - NEVER modify CLAUDE.md without explicit human approval
-- NEVER access files outside this project directory
+- NEVER access files outside this repo
 - NEVER install system-level packages
-- Always ensure the project runs after your changes
+- Keep everything portable: no hardcoded absolute paths, no machine-specific assumptions
 - One task = one commit
 - If blocked, document in PROGRESS.md and move on
-
-### Architecture
-<!-- Update this section as the project grows -->
-
-### Known Issues & Lessons
-<!-- Append from PROGRESS.md reviews -->
