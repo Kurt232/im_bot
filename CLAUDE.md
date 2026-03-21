@@ -15,7 +15,14 @@ If README.md is empty, this is a new project. Run `./setup.sh` if needed, then:
 4. Commit with a clear message
 5. Update PROGRESS.md with lessons learned (see format below)
 6. Mark the task done in TASKS.md
-7. Exit
+7. Sync & push (if remote exists):
+   ```bash
+   git fetch origin && git rebase origin/main
+   # if conflicts: resolve, then `git rebase --continue`
+   git push origin HEAD
+   ```
+   If no remote or push fails (e.g. auth), skip and move on.
+8. Exit
 
 ### PROGRESS.md Format
 每次完成任务或遇到问题后记录，**必须附上 git commit ID**：
