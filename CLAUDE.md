@@ -47,3 +47,5 @@ If running in a worktree, write to the main repo's PROGRESS.md via absolute path
 
 ### Known Issues & Lessons
 <!-- Append from PROGRESS.md reviews -->
+
+### Sync Test
