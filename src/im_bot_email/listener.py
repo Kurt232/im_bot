@@ -27,7 +27,7 @@ def connect(
     """Create an authenticated IMAP connection and select INBOX."""
     client = IMAPClient(host, port=port, ssl=True)
     if oauth2_manager is not None:
-        access_token = oauth2_manager.get_access_token()
+        access_token = oauth2_manager.get_imap_token()
         client.oauth2_login(user, access_token)
     else:
         client.login(user, password)
