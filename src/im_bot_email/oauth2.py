@@ -15,8 +15,10 @@ import msal
 
 logger = logging.getLogger(__name__)
 
-IMAP_SCOPES = ["https://outlook.office.com/IMAP.AccessAsUser.All"]
-SMTP_SCOPES = ["https://graph.microsoft.com/SMTP.Send"]
+SCOPES = [
+    "https://outlook.office.com/IMAP.AccessAsUser.All",
+    "https://outlook.office.com/SMTP.Send",
+]
 
 
 class OAuth2Manager:
@@ -71,11 +73,7 @@ class OAuth2Manager:
         logger.info("OAuth2 token acquired and cached")
         return result["access_token"]
 
-    def get_imap_token(self) -> str:
-        """Return IMAP token (outlook.office.com audience)."""
-        return self._acquire_token(IMAP_SCOPES)
-
-    def get_smtp_token(self) -> str:
-        """Return SMTP token (graph.microsoft.com audience)."""
-        return self._acquire_token(SMTP_SCOPES)
+    def get_access_token(self) -> str:
+        """Return token with IMAP + SMTP scopes (outlook.office.com audience)."""
+        return self._acquire_token(SCOPES)
 

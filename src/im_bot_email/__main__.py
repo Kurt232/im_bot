@@ -27,9 +27,8 @@ def main() -> None:
             tenant_id=cfg["oauth2_tenant_id"],
             token_cache_path=cfg["oauth2_token_cache"],
         )
-        # Eagerly acquire tokens so device-code prompts happen at startup.
-        oauth2_mgr.get_imap_token()
-        oauth2_mgr.get_smtp_token()
+        # Eagerly acquire token so device-code prompt happens at startup.
+        oauth2_mgr.get_access_token()
 
     def on_message(raw_msg):
         try:
