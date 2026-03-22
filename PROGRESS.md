@@ -93,7 +93,7 @@
 - **教训**：微软个人 Outlook 的 OAuth2 生态极其混乱——IMAP 和 SMTP 需要不同 audience 的 token，SMTP AUTH 可能被禁用，scope 在不同 resource 之间不能混用。Gmail App Password 简单可靠得多
 
 ## 异步执行任务命令
-- **Commit**: (pending)
+- **Commit**: 49e4481
 - 原来 `on_message` 回调是同步的，`execute_task` 最多阻塞 5 分钟，期间 IMAP IDLE 无法接收新邮件
 - 用 `ThreadPoolExecutor(max_workers=4)` 将任务执行放到后台线程，`on_message` 仅做 `pool.submit()` 后立即返回
 - IDLE 循环不再被阻塞，可以同时处理多封邮件

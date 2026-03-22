@@ -13,7 +13,7 @@ from .parser import ParsedEmail
 logger = logging.getLogger(__name__)
 
 # Default timeout for task execution (seconds).
-TASK_TIMEOUT = int(os.environ.get("TASK_TIMEOUT", "300"))
+TASK_TIMEOUT = int(os.environ.get("TIMEOUT", "300"))
 
 
 @dataclass
@@ -73,7 +73,7 @@ def execute_task(parsed: ParsedEmail, task_command: str) -> TaskResult:
                 input=task_text,
                 capture_output=True,
                 text=True,
-                timeout=TASK_TIMEOUT,
+                timeout=TASK_TIMEOUT + 30,
                 env=env,
                 cwd=os.environ.get("TASK_CWD", os.getcwd()),
             )

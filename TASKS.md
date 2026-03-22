@@ -12,3 +12,4 @@
 - [x] 需要一个im bot处理邮件的白名单，否则会被垃圾邮件攻击
 - [x] im bot能够正确处理 email threading
 - [x] 启动cmd变成 ./start.sh时，需要异步执行，避免阻塞主线程。整个im bot都在container里运行，这个./start.sh也在容器里，所以你不用担心安全性
+- [ ] run_task.sh 现在足够简单。但是不能主动清除worktree, 这不够优雅。

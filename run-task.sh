@@ -47,27 +47,4 @@ TIMEOUT=${TIMEOUT:-300}
 RESULT=0
 timeout "$TIMEOUT" claude "${CLAUDE_ARGS[@]}" -p "$TASK_INPUT" || RESULT=$?
 
-# Merge changes back to main (with lock to prevent concurrent overwrites)
-LOCK="$(git -C "$REPO_DIR" rev-parse --git-common-dir)/merge.lock"
-while ! mkdir "$LOCK" 2>/dev/null; do sleep 1; done
-trap 'rmdir "$LOCK" 2>/dev/null' EXIT
-
-if [ -n "$(git diff HEAD)" ] || [ -n "$(git diff --cached HEAD)" ]; then
-    git add -A
-    git commit -m "task: ${TASK_ID}" --allow-empty-message 2>/dev/null || true
-fi
-
-if [ "$(git rev-parse HEAD)" != "$(git -C "$REPO_DIR" rev-parse main)" ]; then
-    git rebase main --quiet 2>/dev/null || git rebase --abort 2>/dev/null || true
-    git -C "$REPO_DIR" branch -f main HEAD
-fi
-
-rmdir "$LOCK" 2>/dev/null
-trap - EXIT
-
-# Clean up worktree
-cd "$REPO_DIR"
-git worktree remove "$TASK_DIR" --force 2>/dev/null || true
-git branch -D "$BRANCH" 2>/dev/null || true
-
 exit $RESULT
